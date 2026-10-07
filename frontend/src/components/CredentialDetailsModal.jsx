@@ -170,7 +170,7 @@ export default function CredentialDetailsModal({ credential, onClose }) {
 
 						{credential.metadata ? (
 							<div className="rounded-2xl border border-white/10 bg-slate-950 p-4 space-y-2">
-								<p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Parsed IPFS Metadata</p>
+								<p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Parsed Metadata</p>
 								<pre className="max-h-40 overflow-auto rounded-xl bg-slate-900/80 p-3 font-mono text-[11px] text-slate-300">
 									{JSON.stringify(credential.metadata, null, 2)}
 								</pre>

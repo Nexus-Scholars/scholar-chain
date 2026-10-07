@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
 	applyForV2Institution,
 	decodeContractError,
-	fetchV2Metadata,
 	getV2Institution,
 	INSTITUTION_STATUS,
 	INSTITUTION_STATUS_LABELS,
-	resolveIpfsUrl,
 } from '../contracts/ScholarChainV2Service'
 
 const initialProfileForm = {
