@@ -12,13 +12,6 @@ const DEMO_STUDENT = '0x8D665e3D77bcA5141E04a2E0324E53b9Cb91cD6A'
 // ─── Credential type labels matching the ABI enum order ─────────────────────
 const TYPE_LABELS = ['Academic', 'Internship', 'Workshop', 'Competition', 'Volunteer', 'Research']
 
-const emptyMeta = {
-	institutionName: '',
-	duration: '',
-	description: '',
-	imageUri: '',
-}
-
 const initialForm = {
 	student: '',
 	credentialId: '',
@@ -235,6 +228,7 @@ export default function IssueCredential({ walletState }) {
 								className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
 								disabled={isSubmitting}
 							/>
+							<span className="block text-[11px] font-normal normal-case text-slate-400">Ethereum address that receives the non-transferable credential.</span>
 						</label>
 					</fieldset>
 
@@ -267,6 +261,7 @@ export default function IssueCredential({ walletState }) {
 										Auto
 									</button>
 								</div>
+								<span className="block text-[11px] font-normal normal-case text-slate-400">Institution serial/reference number; distinct from the numeric Token ID assigned on mint.</span>
 							</label>
 
 							<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
@@ -363,7 +358,7 @@ export default function IssueCredential({ walletState }) {
 							className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 transition"
 						>
 							<span className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`}>▶</span>
-							Advanced — use a manual IPFS metadata URI instead
+							Advanced — use a manual metadata URI instead
 						</button>
 
 						{showAdvanced ? (
@@ -444,7 +439,7 @@ export default function IssueCredential({ walletState }) {
 						rel="noreferrer"
 						className="block font-mono text-[11px] text-amber-300 hover:underline break-all"
 					>
-						{result.hash}
+						Transaction hash: {result.hash}
 					</a>
 				</div>
 			) : null}

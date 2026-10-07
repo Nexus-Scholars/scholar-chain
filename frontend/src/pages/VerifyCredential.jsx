@@ -154,7 +154,7 @@ export default function VerifyCredential() {
 				>
 					<div>
 						<h2 className="font-serif text-lg font-bold text-white">Single Token Verification</h2>
-						<p className="mt-1 text-xs text-slate-300">Enter the unique numeric Token ID issued on ScholarChain V2.</p>
+						<p className="mt-1 text-xs text-slate-300">Enter the blockchain's numeric identifier for the credential. The institution's Credential ID / serial is a different value.</p>
 					</div>
 
 					<div className="flex flex-col sm:flex-row gap-3">
@@ -164,6 +164,7 @@ export default function VerifyCredential() {
 							placeholder="Enter Token ID (e.g. 1)"
 							className="flex-1 rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
 						/>
+						<span className="text-[11px] text-slate-500 sm:self-center">Read-only public Sepolia lookup; no wallet connection required.</span>
 						<button
 							type="submit"
 							disabled={loading}
@@ -204,7 +205,7 @@ export default function VerifyCredential() {
 				>
 					<div>
 						<h2 className="font-serif text-lg font-bold text-white">Student Portfolio Lookup</h2>
-						<p className="mt-1 text-xs text-slate-300">Enter a public 0x... wallet address to view all valid credentials held on Sepolia.</p>
+						<p className="mt-1 text-xs text-slate-300">Enter a public 0x... address to view the credentials recorded for that wallet, including revoked records.</p>
 					</div>
 
 					<div className="flex flex-col sm:flex-row gap-3">

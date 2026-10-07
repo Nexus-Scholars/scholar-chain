@@ -52,7 +52,7 @@ export default function CredentialCard({ credential, onOpen }) {
 				)}
 
 				<div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/80 px-2.5 py-1 text-[10px] font-mono font-medium text-slate-300 backdrop-blur-md">
-					<span className="text-slate-500">ID #</span>
+					<span className="text-slate-500">Token ID #</span>
 					{credential.tokenId}
 				</div>
 

@@ -5,20 +5,57 @@ const howItWorks = [
 	{
 		step: '01',
 		icon: '🏛️',
-		title: 'Institutions apply',
-		body: 'Universities, colleges, and training providers apply to join ScholarChain. Once approved by the admin, they can start issuing credentials.',
+		title: 'Institution applies',
+		body: 'An institution connects its wallet and submits an onboarding profile. Its on-chain status becomes Pending.',
 	},
 	{
 		step: '02',
-		icon: '🎓',
-		title: 'Credentials are issued',
-		body: 'An approved institution fills in the student details and achievement, then mints the credential directly from their account. It is recorded permanently.',
+		icon: '🛡️',
+		title: 'Governance reviews',
+		body: 'The contract owner reviews the application and approves or rejects it. Approval enables that institution wallet to issue credentials.',
 	},
 	{
 		step: '03',
+		icon: '🏅',
+		title: 'Issuer creates a credential',
+		body: 'An approved institution enters the student wallet, credential serial, achievement and optional details. The app builds the metadata URI.',
+	},
+	{
+		step: '04',
+		icon: '⛓️',
+		title: 'Institution signs the mint',
+		body: 'The institution confirms a Sepolia transaction. The contract mints a non-transferable ERC-721 token and records its credential details.',
+	},
+	{
+		step: '05',
+		icon: '🎓',
+		title: 'Student views the credential',
+		body: 'The holder wallet can view its credentials in the vault. A public wallet lookup can also read the holder’s records.',
+	},
+	{
+		step: '06',
 		icon: '🔍',
-		title: 'Anyone can verify',
-		body: 'Employers, universities, or anyone else can paste a credential ID or student wallet address on the Verify page — no account needed — and instantly confirm it is genuine.',
+		title: 'Anyone can check the record',
+		body: 'A verifier looks up a Token ID or wallet on Sepolia without MetaMask and sees the issuer, recorded details and current revocation status.',
+	},
+]
+
+const roles = [
+	{
+		title: 'Governance Admin',
+		body: 'The contract owner approves, rejects, suspends or reactivates institutions, and can revoke credentials.',
+	},
+	{
+		title: 'Approved Institution',
+		body: 'An institution with Approved status can issue credentials from its authorized wallet and pays the mint transaction gas.',
+	},
+	{
+		title: 'Student / Credential Holder',
+		body: 'The student wallet receives the non-transferable credential and can view it in the Credential Vault.',
+	},
+	{
+		title: 'Public Verifier',
+		body: 'Anyone can read on-chain credential data using the public Sepolia RPC. No account or MetaMask is needed.',
 	},
 ]
 
@@ -79,10 +116,10 @@ export default function Home({ walletState }) {
 					</h1>
 
 					<p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
-						ScholarChain lets universities and training providers issue digital
-						credentials that are permanently recorded and publicly verifiable.
-						Students own their record. Employers verify in seconds. No emails,
-						no paperwork, no waiting.
+						ScholarChain records credentials issued by approved institutions on
+						Ethereum Sepolia Testnet. Anyone can check the recorded issuer and
+						current blockchain status. This academic prototype demonstrates
+						decentralized verification with permissioned issuer governance.
 					</p>
 
 					{/* Role-aware CTAs */}
@@ -187,10 +224,10 @@ export default function Home({ walletState }) {
 			{/* ── How it works ──────────────────────────────────────────────────── */}
 			<section className="rounded-3xl border border-white/10 bg-[#0B0F17] p-8 sm:p-12 space-y-8 shadow-2xl">
 				<div className="text-center space-y-2">
-					<h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">How it works</h2>
-					<p className="text-sm text-slate-400">Three simple steps from issuance to verification.</p>
+					<h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">How ScholarChain Works</h2>
+					<p className="text-sm text-slate-400">From institution application to an independently readable credential record.</p>
 				</div>
-				<div className="grid gap-8 sm:grid-cols-3">
+				<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
 					{howItWorks.map((item) => (
 						<div key={item.step} className="space-y-3">
 							<div className="flex items-center gap-3">
@@ -202,6 +239,22 @@ export default function Home({ walletState }) {
 						</div>
 					))}
 				</div>
+			</section>
+
+			<section className="space-y-6">
+				<div className="text-center space-y-2">
+					<h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">Who does what?</h2>
+					<p className="text-sm text-slate-400">Issuing is permissioned; reading and verification are public.</p>
+				</div>
+				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					{roles.map((role) => (
+						<article key={role.title} className="rounded-2xl border border-white/10 bg-[#0F172A]/80 p-5">
+							<h3 className="font-serif text-sm font-bold text-amber-200">{role.title}</h3>
+							<p className="mt-2 text-xs leading-relaxed text-slate-400">{role.body}</p>
+						</article>
+					))}
+				</div>
+				<p className="text-center text-[11px] text-slate-500">A blockchain record shows what an approved issuer recorded and the current on-chain status; it does not prove the student deserved the qualification.</p>
 			</section>
 
 			{/* ── Why blockchain ────────────────────────────────────────────────── */}
@@ -219,8 +272,8 @@ export default function Home({ walletState }) {
 					},
 					{
 						icon: '🏅',
-						title: 'Students own their record',
-						body: 'Credentials are issued directly to the student\'s wallet. They travel with the student for life and cannot be taken away.',
+						title: 'Student wallet receives the record',
+						body: 'The credential is minted to the student wallet and cannot be transferred. If revoked, it remains visible with an invalid status.',
 					},
 				].map((item) => (
 					<article
