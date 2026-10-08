@@ -93,7 +93,10 @@ export default function VerifyCredential() {
 				</div>
 				<h1 className="font-serif text-3xl sm:text-4xl font-bold text-white">Verify Academic Credentials</h1>
 				<p className="mx-auto max-w-2xl text-xs sm:text-sm text-slate-300">
-					Anyone can instantly verify academic credentials on the Sepolia blockchain. No web3 wallet or browser extension is required.
+					Check the public Sepolia record and revocation status without a wallet. This confirms what the approved issuer recorded; it does not independently prove identity, accreditation, or that the achievement occurred.
+				</p>
+				<p className="mx-auto max-w-2xl text-[11px] text-amber-200/80">
+					Sepolia is a test network. Wallet lookups and credential records are public, and linked metadata may be supplied by the issuer.
 				</p>
 			</div>
 
