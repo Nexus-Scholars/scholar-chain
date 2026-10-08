@@ -16,7 +16,7 @@ export default function CredentialCard({ credential, onOpen }) {
 	if (!credential) return null
 
 	const imageSource = resolveImageSource(credential.metadata)
-	const statusLabel = credential.revoked ? 'REVOKED' : 'VERIFIED'
+	const statusLabel = credential.revoked ? 'REVOKED' : 'NOT REVOKED'
 	const statusClass = credential.revoked
 		? 'border-rose-500/40 bg-rose-500/15 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
 		: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
