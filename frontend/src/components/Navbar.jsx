@@ -15,8 +15,12 @@ export default function Navbar({ walletState }) {
 		account,
 		isAuthorizedIssuerRole,
 		isContractOwner,
+		isSepolia,
+		isRoleRefreshing,
+		chainId,
 		organizationLabel,
 		handleConnectWallet,
+		handleSwitchAccount,
 		handleDisconnectWallet,
 	} = walletState
 
@@ -45,14 +49,14 @@ export default function Navbar({ walletState }) {
 					</NavLink>
 
 					{/* Admin views */}
-					{isContractOwner ? (
+					{isSepolia && !isRoleRefreshing && isContractOwner ? (
 						<NavLink to="/admin" className={navClass}>
 							Admin Governance
 						</NavLink>
 					) : null}
 
 					{/* Approved Institution views */}
-					{isAuthorizedIssuerRole ? (
+					{isSepolia && !isRoleRefreshing && isAuthorizedIssuerRole ? (
 						<>
 							<NavLink to="/issuer-dashboard" className={navClass}>
 								Institution Portal
@@ -64,7 +68,7 @@ export default function Navbar({ walletState }) {
 					) : null}
 
 					{/* Student / Visitor views */}
-					{!isContractOwner && !isAuthorizedIssuerRole ? (
+					{(!account || (isSepolia && !isRoleRefreshing)) && !isContractOwner && !isAuthorizedIssuerRole ? (
 						<>
 							<NavLink to="/dashboard" className={navClass}>
 								My Credentials
@@ -82,7 +86,11 @@ export default function Navbar({ walletState }) {
 					organizationLabel={organizationLabel}
 					roleLabel={walletState.roleLabel}
 					roleIcon={walletState.roleIcon}
+					isRoleRefreshing={walletState.isRoleRefreshing}
+					isSepolia={isSepolia}
+					chainId={chainId}
 					onConnected={handleConnectWallet}
+					onSwitchAccount={handleSwitchAccount}
 					onDisconnected={handleDisconnectWallet}
 					buttonClassName="px-4 py-2"
 				/>
