@@ -136,6 +136,11 @@ export function resolveIpfsUrl(uri) {
 
 const profileCache = new Map()
 
+export function invalidateInstitutionProfileCache(address) {
+	if (address) profileCache.delete(address.toLowerCase())
+	else profileCache.clear()
+}
+
 export async function fetchV2Metadata(uri) {
 	if (!uri) return null
 
@@ -254,8 +259,15 @@ export async function applyForV2Institution(profileURI) {
 }
 
 export async function updateV2InstitutionProfile(profileURI) {
-	const tx = await (await signerContract()).updateInstitutionProfile(profileURI)
-	return tx.wait()
+	const contract = await signerContract()
+	const address = await contract.runner.getAddress()
+	const tx = await contract.updateInstitutionProfile(profileURI)
+	const receipt = await tx.wait()
+	invalidateInstitutionProfileCache(address)
+	if (typeof window !== 'undefined') {
+		window.dispatchEvent(new CustomEvent('scholarchain:institution-profile-updated', { detail: { address } }))
+	}
+	return receipt
 }
 
 export async function approveV2Institution(address) {

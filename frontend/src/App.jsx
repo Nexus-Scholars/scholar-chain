@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import IssueCredential from './pages/IssueCredential'
@@ -30,29 +30,54 @@ function App() {
 	const [organizationLabel, setOrganizationLabel] = useState('')
 	const [institutionProfile, setInstitutionProfile] = useState(null)
 	const [networkError, setNetworkError] = useState('')
+	const [isRoleRefreshing, setIsRoleRefreshing] = useState(false)
+	const [roleRefreshVersion, setRoleRefreshVersion] = useState(0)
+	const walletEventVersion = useRef(0)
 
 	const refreshWalletState = useCallback(async () => {
-		if (!window.ethereum) return
+		if (!window.ethereum) return { account: '', chainId: '' }
+		const version = ++walletEventVersion.current
 
 		const providerAccounts = await window.ethereum.request({ method: 'eth_accounts' })
 		const currentChainId = await window.ethereum.request({ method: 'eth_chainId' })
 
-		setAccount(providerAccounts?.[0] || '')
-		setChainId(currentChainId || '')
+		const next = { account: providerAccounts?.[0] || '', chainId: currentChainId || '' }
+		if (version !== walletEventVersion.current) return next
+		setAccount(next.account)
+		setChainId(next.chainId)
+		return next
 	}, [])
 
 	useEffect(() => {
 		if (!window.ethereum) return undefined
 
 		const handleAccountsChanged = (accounts) => {
+		const version = ++walletEventVersion.current
+			setIsRoleRefreshing(Boolean(accounts?.[0]))
+			setChainId('')
+			setContractOwner('')
+			setIsAuthorizedIssuerRole(false)
+			setIsContractOwner(false)
+			setOrganizationLabel('')
+			setInstitutionProfile(null)
 			setAccount(accounts?.[0] || '')
 			window.ethereum
 				.request({ method: 'eth_chainId' })
-				.then((currentChainId) => setChainId(currentChainId || ''))
-				.catch(() => setChainId(''))
+				.then((currentChainId) => {
+					if (version === walletEventVersion.current) setChainId(currentChainId || '')
+				})
+				.catch(() => {
+					if (version === walletEventVersion.current) setChainId('')
+				})
 		}
 
 		const handleChainChanged = (newChain) => {
+			setIsRoleRefreshing(Boolean(account))
+			setContractOwner('')
+			setIsAuthorizedIssuerRole(false)
+			setIsContractOwner(false)
+			setOrganizationLabel('')
+			setInstitutionProfile(null)
 			setChainId(newChain || '')
 			refreshWalletState().catch(() => {
 				setAccount('')
@@ -80,7 +105,17 @@ function App() {
 			window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
 			window.ethereum.removeListener('chainChanged', handleChainChanged)
 		}
-	}, [refreshWalletState])
+	}, [account, refreshWalletState])
+
+	useEffect(() => {
+		const refreshInstitutionProfile = (event) => {
+			if (event.detail?.address?.toLowerCase() !== account.toLowerCase()) return
+			setIsRoleRefreshing(true)
+			setRoleRefreshVersion((version) => version + 1)
+		}
+		window.addEventListener('scholarchain:institution-profile-updated', refreshInstitutionProfile)
+		return () => window.removeEventListener('scholarchain:institution-profile-updated', refreshInstitutionProfile)
+	}, [account])
 
 	useEffect(() => {
 		let mounted = true
@@ -92,9 +127,20 @@ function App() {
 				setIsContractOwner(false)
 				setOrganizationLabel('')
 				setInstitutionProfile(null)
+				setIsRoleRefreshing(false)
+				return
+			}
+			if (!chainId || (parseInt(chainId, 16) !== Number(SEPOLIA_CHAIN_ID) && chainId !== SEPOLIA_CHAIN_ID)) {
+				setContractOwner('')
+				setIsAuthorizedIssuerRole(false)
+				setIsContractOwner(false)
+				setOrganizationLabel('')
+				setInstitutionProfile(null)
+				setIsRoleRefreshing(Boolean(account && !chainId))
 				return
 			}
 
+			setIsRoleRefreshing(true)
 			try {
 				const [ownerAddress, profile] = await Promise.all([
 					getV2Owner(),
@@ -119,6 +165,7 @@ function App() {
 						? profile?.name || 'Approved Institution'
 						: '',
 				)
+				setIsRoleRefreshing(false)
 			} catch {
 				if (!mounted) return
 				setContractOwner('')
@@ -126,6 +173,7 @@ function App() {
 				setIsContractOwner(false)
 				setOrganizationLabel('')
 				setInstitutionProfile(null)
+				setIsRoleRefreshing(false)
 			}
 		}
 
@@ -134,10 +182,10 @@ function App() {
 		return () => {
 			mounted = false
 		}
-	}, [account])
+	}, [account, chainId, roleRefreshVersion])
 
 	const isSepolia = useMemo(() => {
-		if (!chainId) return true
+		if (!chainId) return false
 		const numericChain = parseInt(chainId, 16)
 		return numericChain === Number(SEPOLIA_CHAIN_ID) || chainId === SEPOLIA_CHAIN_ID
 	}, [chainId])
@@ -152,22 +200,40 @@ function App() {
 		}
 	}, [refreshWalletState])
 
-	const handleConnectWallet = async () => {
-		const result = await connectWallet()
-		setAccount(result.account)
-		setChainId(result.chainId)
-	}
+	const handleConnectWallet = useCallback(async () => {
+		await connectWallet()
+		setIsRoleRefreshing(true)
+		setContractOwner('')
+		setIsAuthorizedIssuerRole(false)
+		setIsContractOwner(false)
+		setOrganizationLabel('')
+		setInstitutionProfile(null)
+		await refreshWalletState()
+	}, [refreshWalletState])
 
-	const handleSwitchAccount = async () => {
+	const handleSwitchAccount = useCallback(async () => {
 		const result = await switchAccountPermissions()
-		setAccount(result.account)
-		setChainId(result.chainId)
-	}
+		if (result.account.toLowerCase() !== account.toLowerCase() || result.chainId !== chainId) {
+			setIsRoleRefreshing(Boolean(result.account))
+			setContractOwner('')
+			setIsAuthorizedIssuerRole(false)
+			setIsContractOwner(false)
+			setOrganizationLabel('')
+			setInstitutionProfile(null)
+		}
+		await refreshWalletState()
+	}, [account, chainId, refreshWalletState])
 
-	const handleDisconnectWallet = () => {
+	const handleDisconnectWallet = useCallback(() => {
+		setIsRoleRefreshing(false)
+		setContractOwner('')
+		setIsAuthorizedIssuerRole(false)
+		setIsContractOwner(false)
+		setOrganizationLabel('')
+		setInstitutionProfile(null)
 		setAccount('')
 		setChainId('')
-	}
+	}, [])
 
 	const walletState = useMemo(
 		() => ({
@@ -177,12 +243,13 @@ function App() {
 			setChainId,
 			isSepolia,
 			isWalletReady,
+			isRoleRefreshing,
 			contractOwner,
 			isAuthorizedIssuerRole,
 			isContractOwner,
 			organizationLabel,
 			institutionProfile,
-			roleLabel: isContractOwner ? 'Admin' : isAuthorizedIssuerRole ? 'Institution' : 'Student',
+			roleLabel: !account ? 'Visitor' : !chainId ? 'Checking Network' : !isSepolia ? 'Wrong Network' : isRoleRefreshing ? 'Refreshing role' : isContractOwner ? 'Governance Admin' : isAuthorizedIssuerRole ? 'Approved Institution' : 'Wallet Holder',
 			roleIcon: isContractOwner ? '🛡️' : isAuthorizedIssuerRole ? '🏛️' : '🎓',
 			handleConnectWallet,
 			handleSwitchAccount,
@@ -194,11 +261,15 @@ function App() {
 			chainId,
 			isSepolia,
 			isWalletReady,
+			isRoleRefreshing,
 			contractOwner,
 			isAuthorizedIssuerRole,
 			isContractOwner,
 			organizationLabel,
 			institutionProfile,
+			handleConnectWallet,
+			handleSwitchAccount,
+			handleDisconnectWallet,
 			handleSwitchNetwork,
 		],
 	)
@@ -213,7 +284,7 @@ function App() {
 					<div className="absolute -bottom-20 left-1/3 h-[500px] w-[600px] rounded-full bg-slate-900/40 blur-[150px]" />
 				</div>
 
-				{!isSepolia && account ? (
+				{!isSepolia && chainId && account ? (
 					<div className="relative z-30 bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-center text-xs font-semibold text-amber-200 backdrop-blur-md flex items-center justify-center gap-3">
 						<span>⚠️ You are connected to an unsupported network (Chain ID: {chainId}). Switch to Sepolia Testnet to interact with V2 smart contract.</span>
 						<button
@@ -226,18 +297,20 @@ function App() {
 						{networkError ? <span className="text-rose-400 font-normal">({networkError})</span> : null}
 					</div>
 				) : null}
+				{account && !chainId ? <div className="relative z-30 border-b border-white/10 bg-slate-900 px-4 py-2 text-center text-xs text-slate-300">Checking wallet network...</div> : null}
+				{account && isRoleRefreshing ? <div className="relative z-20 border-b border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-center text-xs text-indigo-200">Refreshing wallet role and account data...</div> : null}
 
 				<Navbar walletState={walletState} />
 
 				<main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
 					<Routes>
 						<Route path="/" element={<Home walletState={walletState} />} />
-						<Route path="/issue" element={<IssueCredential walletState={walletState} />} />
+						<Route path="/issue" element={<IssueCredential key={`${account}-${chainId}`} walletState={walletState} />} />
 						<Route path="/verify" element={<VerifyCredential />} />
-						<Route path="/dashboard" element={<MyCredentials walletState={walletState} />} />
-						<Route path="/issuer-dashboard" element={<AdminDashboard walletState={walletState} />} />
-						<Route path="/issuer-application" element={<IssuerApplication walletState={walletState} />} />
-						<Route path="/admin" element={<Admin walletState={walletState} />} />
+						<Route path="/dashboard" element={<MyCredentials key={`${account}-${chainId}`} walletState={walletState} />} />
+						<Route path="/issuer-dashboard" element={<AdminDashboard key={`${account}-${chainId}`} walletState={walletState} />} />
+						<Route path="/issuer-application" element={<IssuerApplication key={`${account}-${chainId}`} walletState={walletState} />} />
+						<Route path="/admin" element={<Admin key={`${account}-${chainId}`} walletState={walletState} />} />
 						<Route path="*" element={<Navigate to="/" replace />} />
 					</Routes>
 				</main>
