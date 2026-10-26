@@ -79,9 +79,9 @@ export default function CredentialDetailsModal({ credential, onClose }) {
 							</div>
 							<div className="border-t border-white/10 p-4 bg-slate-900/40 space-y-2">
 								<div className="flex items-center justify-between">
-									<span className="text-[10px] uppercase tracking-wider text-slate-400">On-Chain Status</span>
+											<span className="text-[10px] uppercase tracking-wider text-slate-400">On-Chain Status</span>
 									<span className={["inline-flex rounded-full border px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest", credential.revoked ? 'border-rose-500/40 bg-rose-500/15 text-rose-300' : 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'].join(' ')}>
-										{credential.revoked ? 'REVOKED' : 'VALID & VERIFIED'}
+												{credential.revoked ? 'REVOKED' : 'RECORDED · NOT REVOKED'}
 									</span>
 								</div>
 								<div className="flex items-center justify-between text-xs">
