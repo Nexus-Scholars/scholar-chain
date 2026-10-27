@@ -4,10 +4,12 @@ import {
 	buildCredentialMetadataURI,
 	decodeContractError,
 	mintV2Credential,
+	V2_CONTRACT_ADDRESS,
 } from '../contracts/ScholarChainV2Service'
 
 // ─── Demo Quick-Fill Presets ─────────────────────────────────────────────────
 const DEMO_STUDENT = '0x8D665e3D77bcA5141E04a2E0324E53b9Cb91cD6A'
+const DEMO_ISSUER = '0x74E2FbaCb00d4488C36131Cf4372a43F6bE6794d'
 
 // ─── Credential type labels matching the ABI enum order ─────────────────────
 const TYPE_LABELS = ['Academic', 'Internship', 'Workshop', 'Competition', 'Volunteer', 'Research']
@@ -34,17 +36,16 @@ function buildId() {
 }
 
 export default function IssueCredential({ walletState }) {
-	const { account, isAuthorizedIssuerRole, institutionProfile } = walletState
+	const { account, isAuthorizedIssuerRole, institutionProfile, isSepolia } = walletState
 	const [form, setForm] = useState(initialForm)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [result, setResult] = useState(null)
 	const [error, setError] = useState('')
-	const [showAdvanced, setShowAdvanced] = useState(false)
 	const [metaPreview, setMetaPreview] = useState('')
 
 	// ── Derived values ──────────────────────────────────────────────────────
 	const institutionName =
-		institutionProfile?.name || account?.slice(0, 6) || 'My Institution'
+		institutionProfile?.name || (isAuthorizedIssuerRole ? 'ScholarChain Test University' : 'Authorized Institution')
 
 	const computedMetaURI = useMemo(() => {
 		if (form.useManualURI && form.manualMetadataURI.trim()) {
@@ -103,15 +104,21 @@ export default function IssueCredential({ walletState }) {
 		setResult(null)
 
 		if (!account) {
-			setError('Connect your institution wallet first.')
+			setError('Please connect your institution wallet in the header first.')
 			return
 		}
 		if (!isAuthorizedIssuerRole) {
-			setError('Only an approved institution wallet can mint credentials.')
+			setError(
+				`Wallet ${account.slice(0, 6)}...${account.slice(-4)} is not approved as an institution. Switch to demo institution wallet ${DEMO_ISSUER.slice(0, 6)}...${DEMO_ISSUER.slice(-4)}.`
+			)
+			return
+		}
+		if (!isSepolia) {
+			setError('Please switch your wallet network to Ethereum Sepolia Testnet.')
 			return
 		}
 		if (!computedMetaURI) {
-			setError('Fill in all required fields so the metadata can be generated.')
+			setError('Fill in all required fields so the metadata URI can be generated.')
 			return
 		}
 
@@ -125,101 +132,100 @@ export default function IssueCredential({ walletState }) {
 				metadataURI: computedMetaURI,
 			})
 			setResult(minted)
-			setForm(initialForm)
-			setMetaPreview('')
-		} catch (err) {
-			setError(decodeContractError(err))
+		} catch (mintError) {
+			setError(decodeContractError(mintError))
 		} finally {
 			setIsSubmitting(false)
 		}
 	}
 
-	// ── Render ───────────────────────────────────────────────────────────────
 	return (
-		<section className="mx-auto max-w-3xl space-y-6">
-			{/* Page header */}
-			<div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#0F172A] via-slate-950 to-[#070A10] p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
-				<div className="flex items-center gap-2">
-					<span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-300">
-						Institution Portal
-					</span>
+		<section className="mx-auto max-w-5xl space-y-8">
+			{/* ── Header ─────────────────────────────────────────────────────── */}
+			<div className="text-center space-y-3">
+				<div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
+					🎓 Institutional Credential Issuance
 				</div>
-				<h1 className="mt-2 font-serif text-3xl font-bold text-white">
-					Issue a Credential
+				<h1 className="font-serif text-3xl sm:text-4xl font-bold text-white">
+					Issue a Soulbound Credential
 				</h1>
-				<p className="mt-1 text-xs text-slate-300 leading-relaxed">
-					Fill in the student details and achievement below. The credential will be
-					issued to the student's wallet and permanently recorded. The student can
-					then share and verify it anywhere.
+				<p className="mx-auto max-w-2xl text-xs sm:text-sm text-slate-300 leading-relaxed">
+					Mint an immutable, non-transferable ERC-721 academic credential directly to a student’s wallet on Ethereum Sepolia.
 				</p>
-
-				{/* Issuing institution badge */}
-				{institutionProfile ? (
-					<div className="mt-4 flex items-center gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-						{institutionProfile.logo ? (
-							<img
-								src={institutionProfile.logo}
-								alt={institutionProfile.name}
-								className="h-10 w-10 rounded-full object-cover border border-amber-500/30"
-							/>
-						) : (
-							<span className="text-2xl">🏛️</span>
-						)}
-						<div>
-							<p className="text-xs font-bold text-amber-300">
-								Issuer: {institutionProfile.name}
-							</p>
-							<p className="font-mono text-[11px] text-slate-400">{account}</p>
-						</div>
-					</div>
-				) : null}
 			</div>
 
-			{/* Not connected or not authorized */}
-			{!account ? (
-				<div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-xs text-slate-300">
-					🔑 Connect an approved institution wallet in the header to mint credentials.
+			{/* ── Role Banner & Authorization Guide ─────────────────────────── */}
+			<div className="rounded-2xl border border-white/10 bg-[#0F172A]/90 p-5 backdrop-blur-xl shadow-xl">
+				<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+					<div className="flex items-center gap-3">
+						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/30 text-xl">
+							🏛️
+						</div>
+						<div>
+							<div className="flex items-center gap-2">
+								<span className="text-xs font-bold text-white uppercase tracking-wider">
+									Issuing Authority:
+								</span>
+								<span className="text-xs font-semibold text-amber-300 font-serif">
+									{institutionName}
+								</span>
+							</div>
+							<p className="font-mono text-[11px] text-slate-400">
+								{account ? `Connected: ${account}` : 'No wallet connected (Demonstration Form Mode)'}
+							</p>
+						</div>
+					</div>
+
+					{isAuthorizedIssuerRole ? (
+						<span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300">
+							✓ Authorized to Mint on Sepolia
+						</span>
+					) : (
+						<div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-right text-xs">
+							<span className="font-bold text-amber-300">💡 Demo Institution Wallet:</span>
+							<code className="block font-mono text-[10px] text-slate-300 mt-0.5">
+								{DEMO_ISSUER}
+							</code>
+						</div>
+					)}
 				</div>
-			) : !isAuthorizedIssuerRole ? (
-				<div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center space-y-2">
-					<p className="text-xs font-bold text-rose-300">⛔ Not Authorized</p>
-					<p className="text-xs text-rose-200">
-						Your connected wallet is not an approved institution.
-						Switch to the institution wallet or apply to become an issuer first.
-					</p>
-				</div>
-			) : (
+			</div>
+
+			{/* ── Main Layout: Form + Concept Sidebar ────────────────────────── */}
+			<div className="grid gap-8 lg:grid-cols-3">
+				{/* Form Column */}
 				<form
-					className="rounded-3xl border border-white/10 bg-[#0F172A]/90 p-6 sm:p-10 shadow-2xl backdrop-blur-xl space-y-6"
+					className="lg:col-span-2 rounded-3xl border border-white/10 bg-[#0F172A]/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6"
 					onSubmit={handleSubmit}
 				>
 					{/* ── Quick Demo Fill ──────────────────────────────────────── */}
-					<div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 space-y-2">
-						<p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">
-							⚡ Demo Quick-Fill
+					<div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4 space-y-2">
+						<div className="flex items-center justify-between">
+							<p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">
+								⚡ Demo Quick-Fill Preset
+							</p>
+							<button
+								type="button"
+								onClick={applyDemoFill}
+								className="rounded-lg border border-indigo-500/40 bg-indigo-500/20 px-3 py-1 text-xs font-bold text-indigo-200 transition hover:bg-indigo-500/30 hover:border-indigo-400"
+							>
+								Autofill Demo Values
+							</button>
+						</div>
+						<p className="text-xs text-slate-400 leading-relaxed">
+							Populates all fields with verified graduation data for demo student{' '}
+							<span className="font-mono text-indigo-300">0x8D66…cD6A</span>.
 						</p>
-						<p className="text-xs text-slate-400">
-							Pre-populates all fields with sample data for wallet{' '}
-							<span className="font-mono text-indigo-300">0x8D66…cD6A</span> (student demo
-							account).
-						</p>
-						<button
-							type="button"
-							onClick={applyDemoFill}
-							className="mt-1 rounded-xl border border-indigo-500/40 bg-indigo-500/15 px-4 py-2 text-xs font-bold text-indigo-200 transition hover:bg-indigo-500/25"
-						>
-							Fill Demo Values
-						</button>
 					</div>
 
 					{/* ── Recipient ────────────────────────────────────────────── */}
 					<fieldset className="space-y-4">
 						<legend className="text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-white/10 w-full">
-							Recipient
+							1. Student / Recipient Information
 						</legend>
 
 						<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-							<span>Student Wallet Address *</span>
+							<span>Student Ethereum Wallet Address *</span>
 							<input
 								name="student"
 								value={form.student}
@@ -228,25 +234,27 @@ export default function IssueCredential({ walletState }) {
 								className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
 								disabled={isSubmitting}
 							/>
-							<span className="block text-[11px] font-normal normal-case text-slate-400">Ethereum address that receives the non-transferable credential.</span>
+							<span className="text-[11px] font-normal text-slate-500 normal-case block">
+								Must be a valid 42-character Ethereum address. The token is minted directly to this holder.
+							</span>
 						</label>
 					</fieldset>
 
-					{/* ── Credential Details ───────────────────────────────────── */}
+					{/* ── Credential Details ──────────────────────────────────── */}
 					<fieldset className="space-y-4">
 						<legend className="text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-white/10 w-full">
-							Credential Details
+							2. Academic Credential Specification
 						</legend>
 
 						<div className="grid gap-4 sm:grid-cols-2">
 							<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-								<span>Credential ID / Serial *</span>
+								<span>Credential Serial / ID *</span>
 								<div className="flex gap-2">
 									<input
 										name="credentialId"
 										value={form.credentialId}
 										onChange={update}
-										placeholder="e.g. SC-2026-CS101"
+										placeholder="e.g. SC-2026-AB123"
 										className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
 										disabled={isSubmitting}
 									/>
@@ -255,13 +263,12 @@ export default function IssueCredential({ walletState }) {
 										onClick={() =>
 											setForm((p) => ({ ...p, credentialId: buildId() }))
 										}
-										className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-bold text-slate-300 transition hover:bg-white/10"
-										title="Auto-generate ID"
+										className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
+										title="Generate random reference code"
 									>
-										Auto
+										Gen ID
 									</button>
 								</div>
-								<span className="block text-[11px] font-normal normal-case text-slate-400">Institution serial/reference number; distinct from the numeric Token ID assigned on mint.</span>
 							</label>
 
 							<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
@@ -273,9 +280,9 @@ export default function IssueCredential({ walletState }) {
 									className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white outline-none ring-amber-500 transition focus:ring-2"
 									disabled={isSubmitting}
 								>
-									{CREDENTIAL_TYPE_OPTIONS.map((item) => (
-										<option key={item.value} value={item.value}>
-											{item.label}
+									{CREDENTIAL_TYPE_OPTIONS.map((opt) => (
+										<option key={opt.value} value={opt.value} className="bg-slate-900">
+											{opt.label}
 										</option>
 									))}
 								</select>
@@ -283,7 +290,7 @@ export default function IssueCredential({ walletState }) {
 						</div>
 
 						<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-							<span>Achievement Title *</span>
+							<span>Achievement / Degree Title *</span>
 							<input
 								name="achievementTitle"
 								value={form.achievementTitle}
@@ -296,7 +303,7 @@ export default function IssueCredential({ walletState }) {
 
 						<div className="grid gap-4 sm:grid-cols-2">
 							<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-								<span>Issue Date *</span>
+								<span>Official Issue Date</span>
 								<input
 									type="date"
 									name="issueDate"
@@ -308,12 +315,12 @@ export default function IssueCredential({ walletState }) {
 							</label>
 
 							<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-								<span>Duration (optional)</span>
+								<span>Course / Degree Duration</span>
 								<input
 									name="duration"
 									value={form.duration}
 									onChange={update}
-									placeholder="e.g. 4 years, 6 months"
+									placeholder="e.g. 4 years / 8 semesters"
 									className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white outline-none ring-amber-500 transition focus:ring-2"
 									disabled={isSubmitting}
 								/>
@@ -321,117 +328,127 @@ export default function IssueCredential({ walletState }) {
 						</div>
 
 						<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-							<span>Description (optional)</span>
+							<span>Academic Description / Honors</span>
 							<textarea
 								name="description"
 								value={form.description}
 								onChange={update}
-								rows={2}
-								placeholder="Short description of the achievement or credential scope..."
-								className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white outline-none ring-amber-500 transition focus:ring-2 resize-none"
+								rows={3}
+								placeholder="Official citation or remarks..."
+								className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white outline-none ring-amber-500 transition focus:ring-2"
 								disabled={isSubmitting}
 							/>
-						</label>
-
-						<label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 space-y-1.5">
-							<span>Certificate Image URI (optional)</span>
-							<input
-								name="imageUri"
-								value={form.imageUri}
-								onChange={update}
-								placeholder="ipfs://bafk... or https://..."
-								className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
-								disabled={isSubmitting}
-							/>
-							<span className="block text-[11px] text-slate-400 font-normal normal-case">
-								Upload the credential artwork to Pinata separately and paste the
-								ipfs:// URI, or leave blank.
-							</span>
 						</label>
 					</fieldset>
-
-					{/* ── Advanced: Manual URI Override ───────────────────────── */}
-					<div>
-						<button
-							type="button"
-							onClick={() => setShowAdvanced((v) => !v)}
-							className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 transition"
-						>
-							<span className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`}>▶</span>
-							Advanced — use a manual metadata URI instead
-						</button>
-
-						{showAdvanced ? (
-							<div className="mt-3 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-								<label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
-									<input
-										type="checkbox"
-										name="useManualURI"
-										checked={form.useManualURI}
-										onChange={update}
-										className="accent-amber-400"
-									/>
-									Override auto-generated metadata with a manual URI
-								</label>
-								{form.useManualURI ? (
-									<input
-										name="manualMetadataURI"
-										value={form.manualMetadataURI}
-										onChange={update}
-										placeholder="ipfs://bafkrei... or https://..."
-										className="w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-xs text-white font-mono outline-none ring-amber-500 transition focus:ring-2"
-										disabled={isSubmitting}
-									/>
-								) : null}
-							</div>
-						) : null}
-					</div>
 
 					{/* ── Metadata preview ─────────────────────────────────────── */}
 					{computedMetaURI && !form.useManualURI ? (
 						<div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-2">
 							<div className="flex items-center justify-between">
 								<p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-									Auto-generated Metadata
+									Decentralized Metadata Builder
 								</p>
 								<button
 									type="button"
 									onClick={handlePreview}
 									className="text-[11px] font-semibold text-amber-400 hover:underline"
 								>
-									{metaPreview ? 'Hide Preview' : 'Preview JSON'}
+									{metaPreview ? 'Hide JSON Preview' : 'Preview JSON Payload'}
 								</button>
 							</div>
 							<p className="text-[11px] text-slate-400">
-								The metadata JSON is encoded as a{' '}
-								<code className="text-amber-300">data:application/json;base64</code> URI
-								and stored on-chain directly — no external service required.
+								Encodes attributes into a permanent standard <code className="text-amber-300 font-mono">data:application/json;base64</code> URI written to the blockchain.
 							</p>
 							{metaPreview ? (
-								<pre className="mt-2 max-h-48 overflow-auto rounded-xl bg-slate-950 p-3 text-[10px] text-emerald-300 whitespace-pre-wrap break-all">
+								<pre className="mt-2 max-h-48 overflow-auto rounded-xl bg-slate-950 p-3 text-[10px] text-emerald-300 whitespace-pre-wrap break-all font-mono">
 									{metaPreview}
 								</pre>
 							) : null}
 						</div>
 					) : null}
 
-					{/* ── Submit ────────────────────────────────────────────────── */}
-					<button
-						type="submit"
-						disabled={!canSubmit || isSubmitting}
-						className="w-full rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						{isSubmitting ? '⛓️ Recording on blockchain…' : '🎓 Issue Credential'}
-					</button>
+					{/* ── Submit Button with Role-Aware State ──────────────────── */}
+					{isAuthorizedIssuerRole ? (
+						<button
+							type="submit"
+							disabled={!canSubmit || isSubmitting}
+							className="w-full rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-950 shadow-lg shadow-amber-500/25 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{isSubmitting ? '⛓️ Signing and Minting on Sepolia…' : '🎓 Issue Soulbound Credential'}
+						</button>
+					) : (
+						<div className="space-y-3">
+							<button
+								type="button"
+								onClick={() => {
+									if (!account) {
+										alert('Please connect MetaMask in the header. To mint, use authorized demo account 0x74E2FbaCb00d4488C36131Cf4372a43F6bE6794d.')
+									} else {
+										alert(`Current wallet (${account.slice(0, 6)}...${account.slice(-4)}) is not an approved issuer. Please switch to demo institution wallet 0x74E2FbaCb00d4488C36131Cf4372a43F6bE6794d to execute on-chain minting.`)
+									}
+								}}
+								className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-amber-300 transition hover:bg-amber-500/20"
+							>
+								🔒 Switch to Demo Institution (0x74E2...794d) to Mint on Sepolia
+							</button>
+							<p className="text-center text-[11px] text-slate-500">
+								Form validation and JSON metadata generator can be evaluated in demonstration mode above.
+							</p>
+						</div>
+					)}
 				</form>
-			)}
 
-			{/* Success */}
+				{/* Concept Notes Sidebar */}
+				<aside className="space-y-5">
+					<div className="rounded-3xl border border-white/10 bg-[#0F172A]/90 p-6 space-y-4">
+						<h3 className="font-serif text-sm font-bold text-amber-200 uppercase tracking-wider">
+							💡 Issuance Specifications
+						</h3>
+						<div className="space-y-3 text-xs text-slate-400">
+							<div className="space-y-1">
+								<span className="text-slate-200 font-semibold block">Non-Transferability Guarantee</span>
+								<p className="leading-relaxed">
+									Credentials minted by this form can never be sold, traded, or transferred to another address. They are bound to the student recipient forever.
+								</p>
+							</div>
+							<div className="space-y-1">
+								<span className="text-slate-200 font-semibold block">Gas & Blockchain State</span>
+								<p className="leading-relaxed">
+									The institution pays a small amount of testnet Sepolia gas to execute the transaction. The recipient pays nothing.
+								</p>
+							</div>
+							<div className="space-y-1">
+								<span className="text-slate-200 font-semibold block">Contract Target</span>
+								<p className="font-mono text-[10px] text-amber-300 break-all">
+									{V2_CONTRACT_ADDRESS}
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 p-6 space-y-3">
+						<h3 className="font-serif text-xs font-bold text-indigo-300 uppercase tracking-wider">
+							📋 Demonstration Tips for Review
+						</h3>
+						<p className="text-xs text-slate-300 leading-relaxed">
+							1. Click <strong>Autofill Demo Values</strong> to test form validation.
+						</p>
+						<p className="text-xs text-slate-300 leading-relaxed">
+							2. Click <strong>Preview JSON Payload</strong> to view the generated metadata.
+						</p>
+						<p className="text-xs text-slate-300 leading-relaxed">
+							3. Switch to account <code className="text-indigo-200 font-mono">0x74E2...</code> to demonstrate live on-chain minting.
+						</p>
+					</div>
+				</aside>
+			</div>
+
+			{/* Success Result */}
 			{result ? (
 				<div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 space-y-2">
-					<p className="text-xs font-bold text-emerald-300">✅ Credential Issued!</p>
+					<p className="text-xs font-bold text-emerald-300">✅ Credential Issued on Sepolia!</p>
 					<p className="text-xs text-emerald-200">
-						The credential has been recorded. Share the transaction link with the student so they can find their credential ID.
+						The credential transaction has been submitted and confirmed by the Sepolia network.
 					</p>
 					<a
 						href={`https://sepolia.etherscan.io/tx/${result.hash}`}
@@ -439,12 +456,12 @@ export default function IssueCredential({ walletState }) {
 						rel="noreferrer"
 						className="block font-mono text-[11px] text-amber-300 hover:underline break-all"
 					>
-						Transaction hash: {result.hash}
+						Transaction hash: {result.hash} ↗
 					</a>
 				</div>
 			) : null}
 
-			{/* Error */}
+			{/* Error Notice */}
 			{error ? (
 				<div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-200">
 					⚠️ {error}
