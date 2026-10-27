@@ -112,29 +112,54 @@ export default function AdminDashboard({ walletState }) {
 
 	if (!account) {
 		return (
-			<section className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-[#0F172A]/80 p-8 text-center backdrop-blur-xl shadow-2xl">
+			<section className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-[#0F172A]/90 p-8 text-center backdrop-blur-xl shadow-2xl space-y-6">
 				<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-3xl">
 					🏛️
 				</div>
-				<h1 className="mt-4 font-serif text-2xl font-bold text-white">Institution Dashboard</h1>
-				<p className="mt-2 text-sm text-slate-300">
-					Connect an approved institution wallet from the navigation header to view your operational portal.
+				<h1 className="font-serif text-2xl font-bold text-white">Institution Operational Portal</h1>
+				<p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+					Connect an approved institution wallet from the navigation header to view your active credentials, issued records, and university profile.
 				</p>
+				<div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-5 text-left space-y-2 max-w-lg mx-auto">
+					<p className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+						⚡ Demo Reviewer Guide:
+					</p>
+					<p className="text-xs text-slate-300 leading-relaxed">
+						To view the active portal during the college demonstration, switch MetaMask to the approved university account:
+					</p>
+					<div className="rounded-xl border border-white/10 bg-slate-950 p-2.5 font-mono text-xs text-amber-300 select-all">
+						0x74E2FbaCb00d4488C36131Cf4372a43F6bE6794d
+					</div>
+					<p className="text-[11px] text-slate-400">
+						Entity: <strong>ScholarChain Test University</strong> • Status: <strong>Approved</strong> on Sepolia
+					</p>
+				</div>
 			</section>
 		)
 	}
 
 	if (!isAuthorizedIssuerRole && !isContractOwner) {
 		return (
-			<section className="mx-auto max-w-3xl rounded-3xl border border-amber-500/30 bg-slate-900/90 p-8 text-center shadow-2xl">
+			<section className="mx-auto max-w-3xl rounded-3xl border border-amber-500/30 bg-slate-900/90 p-8 text-center shadow-2xl space-y-6">
 				<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-3xl">
 					⚠️
 				</div>
-				<h1 className="mt-4 font-serif text-2xl font-bold text-white">Authorization Required</h1>
-				<p className="mt-2 text-sm text-slate-300">
+				<h1 className="font-serif text-2xl font-bold text-white">Authorization Required</h1>
+				<p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
 					The connected wallet <span className="font-mono text-amber-300 font-semibold">{shortenAddress(account)}</span> is not currently an approved institution on Sepolia.
 				</p>
-				<div className="mt-6 flex justify-center gap-4">
+				<div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-5 text-left space-y-2 max-w-lg mx-auto">
+					<p className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+						⚡ Demo Reviewer Guide:
+					</p>
+					<p className="text-xs text-slate-300 leading-relaxed">
+						To inspect this view, switch MetaMask to the approved test institution wallet:
+					</p>
+					<div className="rounded-xl border border-white/10 bg-slate-950 p-2.5 font-mono text-xs text-amber-300 select-all">
+						0x74E2FbaCb00d4488C36131Cf4372a43F6bE6794d
+					</div>
+				</div>
+				<div className="flex justify-center gap-4">
 					<Link
 						to="/issuer-application"
 						className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-amber-300 transition hover:bg-amber-500/25"

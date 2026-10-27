@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import IssueCredential from './pages/IssueCredential'
 import VerifyCredential from './pages/VerifyCredential'
@@ -314,6 +315,8 @@ function App() {
 						<Route path="*" element={<Navigate to="/" replace />} />
 					</Routes>
 				</main>
+
+				<Footer />
 			</div>
 		</BrowserRouter>
 	)
